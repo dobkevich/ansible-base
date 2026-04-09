@@ -1,0 +1,78 @@
+---
+- name: Install rsyslog and openssh-server
+  ansible.builtin.apt:
+    name:
+      - rsyslog
+      - openssh-server
+    state: present
+
+# /storage directory must exist because rsyslog's socket for chrooted SFTP logs
+# is /storage/sftp.log.socket (defined in 60-internal-sftp.conf).
+- name: Create /storage directory
+  ansible.builtin.file:
+    path: /storage
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create 'sftpusers' group
+  ansible.builtin.group:
+    name: sftpusers
+    state: present
+
+- name: Configure rsyslog for SFTP
+  ansible.builtin.copy:
+    src: etc__rsyslog.d/60-internal-sftp.conf
+    dest: /etc/rsyslog.d/60-internal-sftp.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "ssh : Restart rsyslog"
+
+- name: Ensure rsyslog is enabled and running
+  ansible.builtin.service:
+    name: rsyslog
+    enabled: true
+    state: started
+
+- name: Ensure /etc/ssh/sshd_config.d directory exists
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Comment out default Subsystem sftp to avoid conflicts
+  ansible.builtin.replace:
+    path: /etc/ssh/sshd_config
+    regexp: '^(Subsystem\s+sftp\s+.*)$'
+    replace: '#\1'
+  notify: "ssh : Restart ssh"
+
+- name: Configure ssh service (common settings and sftp configuration)
+  ansible.builtin.copy:
+    src: etc__ssh__sshd_config.d/60-common_and_sftp.conf
+    dest: /etc/ssh/sshd_config.d/60-common_and_sftp.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "ssh : Restart ssh"
+
+- name: Configure logrotate for SFTP
+  ansible.builtin.copy:
+    src: etc__logrotate.d/sftp
+    dest: /etc/logrotate.d/sftp
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure ssh is enabled and running
+  ansible.builtin.service:
+    name: ssh
+    enabled: true
+    state: started

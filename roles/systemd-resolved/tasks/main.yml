@@ -1,0 +1,31 @@
+---
+- name: Install systemd-resolved
+  ansible.builtin.apt:
+    name: systemd-resolved
+    state: present
+
+- name: Ensure configuration directory for systemd-resolved exists
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure public DNS servers
+  ansible.builtin.copy:
+    src: public_dns.conf
+    dest: /etc/systemd/resolved.conf.d/public_dns.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "systemd-resolved : Restart systemd-resolved"
+
+- name: Ensure systemd-resolved is enabled and running
+  ansible.builtin.service:
+    name: systemd-resolved
+    enabled: true
+    state: started
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

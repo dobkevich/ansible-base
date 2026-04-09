@@ -1,0 +1,23 @@
+---
+- name: Install iptables-persistent
+  ansible.builtin.apt:
+    name: iptables-persistent
+    state: present
+
+- name: Configure iptables rules
+  ansible.builtin.copy:
+    src: rules.v4
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "iptables_init : Restart netfilter-persistent"
+
+- name: Ensure netfilter-persistent is enabled and running
+  ansible.builtin.service:
+    name: netfilter-persistent
+    enabled: true
+    state: started
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

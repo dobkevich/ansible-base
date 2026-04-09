@@ -1,0 +1,25 @@
+---
+- name: Install chrony and util-linux packages
+  ansible.builtin.apt:
+    name:
+      - chrony
+      - util-linux
+      - util-linux-extra
+    state: present
+
+- name: Configure /etc/timezone
+  ansible.builtin.copy:
+    src: timezone
+    dest: /etc/timezone
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - "timezone_chrony : Restart chrony"
+    - "timezone_chrony : Set hardware clock"
+
+- name: Ensure chrony is enabled and running
+  ansible.builtin.service:
+    name: chrony
+    enabled: true
+    state: started

@@ -1,0 +1,7 @@
+---
+- name: Initial base configuration
+  hosts: all
+  become: true
+  roles:
+    - packages_init
+    - iptables_init

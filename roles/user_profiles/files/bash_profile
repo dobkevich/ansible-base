@@ -1,0 +1,138 @@
+bash_prompt_cmd() {
+        local CY="\[\e[1;34m\]" # Each is 12 chars long
+        local BL="\[\e[1;34m\]"
+        local WH="\[\e[1;37m\]"
+        local BR="\[\e[0;33m\]"
+        local RE="\[\e[1;31m\]"
+        local PROMPT="${CY}$"
+        [ $UID -eq "0" ] && PROMPT="${RE}#"
+
+        # Add the first part of the prompt: username, host and time
+        local PROMPT_PWD=""
+        local PS1_T1="$BL[ $CY`whoami`@`hostname` $BL: $CY\t $BL:$CY "
+        local ps_len=$(( ${#PS1_T1} - 12 * 6 + 6 + 4 )) # Len adjust for colors, time and var
+        local PS1_T2=" $BL]\n${PROMPT} \[\e[0m\]"
+        local startpos=""
+
+        PROMPT_PWD="${PWD/#$HOME/~}"
+        local overflow_prefix="..."
+        local pwdlen=${#PROMPT_PWD}
+        local maxpwdlen=$(( COLUMNS - ps_len ))
+        # Sometimes COLUMNS isn't initiliased, if it isn't, fall back on 80
+        [ $maxpwdlen -lt 0 ] && maxpwdlen=$(( 80 - ps_len )) 
+
+        if [ $pwdlen -gt $maxpwdlen ] ; then
+                startpos=$(( $pwdlen - maxpwdlen + ${#overflow_prefix} ))
+                PROMPT_PWD="${overflow_prefix}${PROMPT_PWD:$startpos:$maxpwdlen}"
+        fi
+        export PS1="${PS1_T1}${PROMPT_PWD}${PS1_T2}"
+}
+PROMPT_COMMAND=bash_prompt_cmd
+
+# General
+
+alias br="source ~/.bash_profile"
+alias showprofile="cat ~/.bash_profile"
+alias ll="ls -la"
+alias l.="ls -la -d .*"
+alias to="ssh -p 54018 -o User=z"
+alias 8="ping 8.8.8.8"
+alias r="sudo -i"
+
+# Float calculator, usage examples:
+# c 2 / 2
+# c 2 * 2
+# c "(2 + 2) * 2"
+alias c="set -f; bc_wrap"
+bc_wrap() {
+	echo "scale=16; $@" | bc | perl -ne 'printf "%.8f", $_;'
+	set +f
+}
+
+# Search in bash history, usage:
+# hh <search string>
+hh() {
+        history | grep -i "$@"
+}
+HISTIGNORE='hh *:ll:bg:fg:exit'
+
+# Access permissions
+
+alias 644_files="find . -type f -exec chmod 644 {} \;"
+alias 755_dirs="find . -type d -exec chmod 755 {} \;"
+alias 777_file="chmod 777"
+alias 666_files="find . -type f -exec chmod 666 {} \;"
+alias 777_dirs="find . -type d -exec chmod 777 {} \;"
+alias 777_recursive="~/scripts/777_recursive.pl"
+
+# Packages
+
+alias update="sudo aptitude update"
+alias upgrade="sudo aptitude safe-upgrade"
+alias install="sudo aptitude install"
+alias remove="sudo aptitude remove"
+alias uu="sudo apt clean && sudo apt update && sudo apt upgrade && sudo apt autoremove"
+
+# Services
+
+alias nt="sudo systemctl configtest nginx"
+alias nr="sudo systemctl reload nginx"
+alias mr="sudo systemctl restart mysql"
+alias hr="sudo systemctl reload haproxy"
+alias ar="sudo apache2ctl graceful"
+
+# System
+
+alias iptables_test="sudo iptables-restore < /etc/iptables.test.rules"
+alias iptables_save="sudo service iptables-persistent save"
+alias sw="sudo swapoff -a && sudo swapon -a"
+
+# Monitoring
+
+alias free="sudo free -m"
+
+alias total_mem="free -m | awk '{print \$2}' | head -n 2 | tail -n 1"
+
+alias memstat="ps -eo rss | \
+awk -v total_mem=\`total_mem\` 'NR == 1 {next} BEGIN {used=0;total=free=total_mem*1024} {used+= \$1} END \
+{free-=used; printf(\"%.2f MB memory used, %.2f MB free, %.2f MB total \n\", \
+used/1024, free/1024, total/1024)}' ; \
+free -m | grep Swap | awk '{total= \$2; used= \$3; free= \$4; \
+printf(\"Swap: %d MB used, %d MB free, %d MB total \n\", used, free, total)}'"
+
+alias mem="ps -eo rss,pmem,pcpu,comm | sort -k 1 -n ; memstat"
+alias m="watch -n 1 'memstat; ps -eo rss,pmem,pcpu,comm | sort -k 1 -n'"
+alias memlong="ps -eo rss,pmem,pcpu,args | sort -k 1 -n ; memstat"
+alias cpu="sudo ps -eo pcpu,pid,user,comm | sort -k 1 -n"
+alias cpulong="sudo ps -eo pcpu,pid,user,command | sort -k 1 -n"
+
+alias syslog="sudo tail -f /var/log/syslog"
+
+alias s="sudo dstat -cldmsnp -M topcpu"
+alias i="sudo iostat -x 1"
+alias hdd="sudo hdparm -tT /dev/sda1"
+
+alias listen="lsof -i -n -P | less"
+alias conntrack="cat /proc/sys/net/netfilter/nf_conntrack_count"
+
+# Logs
+
+alias ntail="tailf /var/log/nginx/virt_hosts.access.log"
+alias ncat="cat /var/log/nginx/virt_hosts.access.log"
+
+# Other
+
+# Set terminal window title and also define a command line alias, usage:
+# title <terminal window title>
+title() {
+	echo -ne "\033]0;$1\007"
+}
+title $(hostname)
+
+# A workaround required for mc to fix/enable 256 colors under screen
+alias mc="TERMCAP='' mc"
+
+# Launch 'screen' for interactive login sessions only
+if [[ $- == *i* ]]; then
+	[ $(whoami) != 'root' ] && sudo screen -d -R
+fi

@@ -1,0 +1,62 @@
+*filter
+
+# Allow all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+
+# Accept all established inbound and outbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+-A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+
+# Outbound traffic rules
+
+# Allow access to Consul ports for users with UIDs <= 1500.
+# It includes root (UID 0), z (UID 1000) and consul (UID 1500).
+-A OUTPUT -m owner --uid-owner 0-1500 --socket-exists -p tcp -m multiport --dports 8400,8500,8600,58300,58301,58302 -j ACCEPT
+-A OUTPUT -m owner --uid-owner 0-1500 --socket-exists -p udp -m multiport --dports 8400,8500,8600,58300,58301,58302 -j ACCEPT
+-A OUTPUT -p tcp -m multiport --dports 8400,8500,8600,58300,58301,58302 -m limit --limit 15/min -j LOG --log-prefix "iptables denied, Consul/TCP: " --log-level 7
+-A OUTPUT -p udp -m multiport --dports 8400,8500,8600,58300,58301,58302 -m limit --limit 15/min -j LOG --log-prefix "iptables denied, Consul/UDP: " --log-level 7
+-A OUTPUT -p tcp -m multiport --dports 8400,8500,8600,58300,58301,58302 -j REJECT
+-A OUTPUT -p udp -m multiport --dports 8400,8500,8600,58300,58301,58302 -j REJECT
+
+# Allow all other outbound traffic
+-A OUTPUT -j ACCEPT
+
+
+# Allow ping
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+
+# Allow SSH connections
+#
+# The -dport number is the same as in /etc/ssh/sshd_config
+#
+-A INPUT -p tcp -m state --state NEW --dport 54018 -j ACCEPT
+
+
+# Allows inbound NTP connections
+-A INPUT -p tcp --dport 123 -j ACCEPT
+-A INPUT -p udp --dport 123 -j ACCEPT
+
+
+# Consul port for Serf LAN. This is used to handle gossip in the LAN. Required by all
+# agents. It is further narrowed down to a network interface (usually internal) which
+# is used for Consul agents' communication within the same datacenter. For that we
+# additionally use a script which is called before Consul service is started and
+# discovers the interface which uses CONSUL_BIND_TO IP address defined in /etc/environment.
+
+-A INPUT -p tcp --dport 58301 -j ACCEPT
+-A INPUT -p udp --dport 58301 -j ACCEPT
+
+
+# Log iptables denied calls
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+
+# Reject all other inbound - default deny unless explicitly allowed policy
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT

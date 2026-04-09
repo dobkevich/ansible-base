@@ -1,0 +1,5 @@
+---
+- name: Rebuild aliases
+  ansible.builtin.command: /usr/bin/newaliases
+  changed_when: true
+  failed_when: false

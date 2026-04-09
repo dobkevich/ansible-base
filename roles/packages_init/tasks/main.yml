@@ -1,0 +1,47 @@
+---
+# - name: Add backports repository
+#  ansible.builtin.copy:
+#    dest: /etc/apt/sources.list.d/backports-repository.list
+#    content: "deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://deb.debian.org/debian/ {{ ansible_distribution_release }}-backports main\n"
+#    mode: '0644'
+
+- name: Update all packages
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Upgrade all packages
+  ansible.builtin.apt:
+    upgrade: safe
+
+- name: Full upgrade
+  ansible.builtin.apt:
+    upgrade: dist
+
+- name: Remove unneeded packages
+  ansible.builtin.apt:
+    name: apache2
+    state: absent
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - sudo
+      - screen
+      - mc
+      - bash-completion
+      - aspell-en
+      - locales
+      - aptitude
+      - apt-file
+      - rsync
+      - curl
+      - wget
+      - htop
+      - locate
+      - bind9-dnsutils
+      - gpg
+    state: present
+
+- name: Update apt-file cache
+  ansible.builtin.command: apt-file update
+  changed_when: false

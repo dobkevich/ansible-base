@@ -1,0 +1,51 @@
+---
+- name: Create admin user for interactive system administration and configure its profile (user '{{ admin_username }}')
+  hosts: all
+  remote_user: ansible
+  port: 54018
+  become: true
+  gather_facts: false
+
+  vars:
+
+    admin_username: "z"
+
+    # Public key content.
+    # To create a new key pair (-N for a passwordless key) on a Linux system run:
+    # ssh-keygen -t ed25519 -C "ansible-automation" -f ./id_ed25519_ansible -N ""
+    # For legacy systems without Ed25519 support:
+    # ssh-keygen -t rsa -b 4096 -C "legacy-rsa-key" -f ./id_rsa_ansible -N ""
+    ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMYrOqNbFriGsrkPSGi92gFexj7X96iV5nBlOjPdVQIq z"
+
+    # Hashed password (SHA 512); to generate it on a Linux system run:
+    # mkpasswd --method=sha-512
+    admin_password_sha512_hash: "$6$PTDeEDg5z3qwuyPH$S6I/4KDHOy5F9VOD4UVOaC1U5yySzdbr5uC1zZAbQ8EddbhCdBS0A5vHob3940AHkMlRws4MGoTfcUil2kf1.1"
+
+  tasks:
+
+    - name: Create user '{{ admin_username }}'
+      ansible.builtin.user:
+        name: "{{ admin_username }}"
+        shell: /bin/bash
+        create_home: true
+        password: "{{ admin_password_sha512_hash }}"
+        state: present
+
+    - name: Add SSH key to authorized_keys for user '{{ admin_username }}'
+      ansible.posix.authorized_key:
+        user: "{{ admin_username }}"
+        state: present
+        key: "{{ ssh_public_key }}"
+        manage_dir: true
+
+    - name: Configure sudo for user '{{ admin_username }}'
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ admin_username }}"
+        content: |
+          {{ admin_username }} 		ALL=(ALL) ALL
+          {{ admin_username }} 		ALL = NOPASSWD: /usr/bin/screen
+          {{ admin_username }} 		ALL = NOPASSWD: /usr/bin/rsync
+        owner: root
+        group: root
+        mode: '0440'
+        validate: /usr/sbin/visudo -cf %s

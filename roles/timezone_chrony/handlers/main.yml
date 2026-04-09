@@ -1,0 +1,9 @@
+---
+- name: Restart chrony
+  ansible.builtin.service:
+    name: chrony
+    state: restarted
+
+- name: Set hardware clock
+  ansible.builtin.command: hwclock --systohc
+  changed_when: true

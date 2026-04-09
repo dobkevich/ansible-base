@@ -1,0 +1,4 @@
+---
+# Global variables for all servers
+ansible_port: 54018
+ansible_user: ansible

@@ -1,0 +1,17 @@
+---
+- name: Install locales package
+  ansible.builtin.apt:
+    name: locales
+    state: present
+
+- name: Configure locales
+  ansible.builtin.copy:
+    src: locale.gen
+    dest: /etc/locale.gen
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "locale : Generate locales"
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

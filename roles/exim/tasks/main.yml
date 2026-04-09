@@ -1,0 +1,33 @@
+---
+- name: Install exim4
+  ansible.builtin.apt:
+    name: exim4
+    state: present
+  notify: "exim : Rebuild aliases"
+
+- name: Configure /etc/mailname
+  ansible.builtin.copy:
+    src: mailname
+    dest: /etc/mailname
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "exim : Update exim config"
+
+- name: Configure /etc/exim4/update-exim4.conf.conf
+  ansible.builtin.copy:
+    src: update-exim4.conf.conf
+    dest: /etc/exim4/update-exim4.conf.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "exim : Update exim config"
+
+- name: Ensure exim4 is enabled and running
+  ansible.builtin.service:
+    name: exim4
+    enabled: true
+    state: started
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

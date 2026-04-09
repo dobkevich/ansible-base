@@ -1,0 +1,28 @@
+---
+- name: Ensure 'nf_conntrack' kernel module is loaded
+  community.general.modprobe:
+    name: nf_conntrack
+    state: present
+    persistent: present
+
+- name: Configure sysctl settings (base)
+  ansible.builtin.copy:
+    src: 20-local-base.conf
+    dest: /etc/sysctl.d/20-local-base.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "kernel : Restart systemd-sysctl"
+
+- name: Configure sysctl settings (64bit)
+  ansible.builtin.copy:
+    src: 21-local-base-64bit.conf
+    dest: /etc/sysctl.d/21-local-base-64bit.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_architecture == "x86_64"
+  notify: "kernel : Restart systemd-sysctl"
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

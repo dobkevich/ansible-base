@@ -1,0 +1,15 @@
+---
+- name: Base configuration
+  hosts: all
+  become: true
+  roles:
+    - locale
+    - swap
+    - packages
+    - systemd-resolved
+    - kernel
+    - timezone_chrony
+    - exim
+    - user_profiles
+    - ssh
+    - logrotate

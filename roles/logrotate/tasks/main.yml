@@ -1,0 +1,10 @@
+---
+- name: Check if logrotate is in cron.daily
+  ansible.builtin.stat:
+    path: /etc/cron.daily/logrotate
+  register: logrotate_daily
+
+- name: Change the logrotate cron job frequency from daily to hourly if needed
+  ansible.builtin.command: mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+  when: logrotate_daily.stat.exists
+  changed_when: true

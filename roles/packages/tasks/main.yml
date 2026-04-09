@@ -1,0 +1,53 @@
+---
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - links
+      - pkgconf
+      - cdbs
+      - devscripts
+      - build-essential
+      - autoconf
+      - bison
+      - flex
+      - libssl-dev
+      - libperl-dev
+      - firmware-linux-free
+      - dkms
+      - module-assistant
+      - lshw
+      - iw
+      - fuse
+      - strace
+      - gdb
+      - lsof
+      - ncdu
+      - macchanger
+      - hdparm
+      - inotify-tools
+      - colordiff
+      - pv
+      - gawk
+      - apg
+      - subversion
+      - whois
+      - telnet
+      - idn
+      - idn2
+      - unzip
+      - unrar-free
+      - tcpdump
+      - nethogs
+      - iftop
+      - iptraf-ng
+      - vnstat
+      - sockstat
+      - sysstat
+      - ethtool
+      - jq
+      - git
+      - s3cmd
+      - spiped
+      - apt-transport-https
+    state: present
+    update_cache: true

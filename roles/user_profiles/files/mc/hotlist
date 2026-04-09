@@ -1,0 +1,6 @@
+ENTRY "/home/z/cloudanza-dev" URL "/home/z/cloudanza-dev"
+ENTRY "/root" URL "/root"
+ENTRY "/etc" URL "/etc"
+ENTRY "/tmp" URL "/tmp"
+ENTRY "/var/log" URL "/var/log"
+ENTRY "/storage" URL "/storage"

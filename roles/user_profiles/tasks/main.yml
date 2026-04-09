@@ -1,0 +1,78 @@
+---
+# Configure profiles for all users listed in /etc/passwd with shell
+# /bin/bash and UID <= 1100 (but skip automation user 'ansible').
+# Such users are supposed to be used for initial system configuration
+# and further administration (e.g. root and non-root sudo user 'z').
+
+- name: Get list of users from /etc/passwd
+  ansible.builtin.getent:
+    database: passwd
+
+- name: Identify administrative users
+  ansible.builtin.set_fact:
+    user_profiles_admin_users: >-
+      {{
+        ansible_facts.getent_passwd | dict2items
+        | selectattr('value.5', 'equalto', '/bin/bash')
+        | selectattr('value.1', 'le', '1100')
+        | rejectattr('key', 'in', ['ansible'])
+        | list
+      }}
+
+- name: Create required directories for users
+  ansible.builtin.file:
+    path: "{{ item[0].value.4 }}/{{ item[1] }}"
+    state: directory
+    owner: "{{ item[0].key }}"
+    group: "{{ item[0].key }}"
+    mode: '0700'
+  loop: "{{ user_profiles_admin_users | product(['.config', '.config/mc', '.local', '.local/share', '.local/share/mc', '.local/share/mc/syntax']) | list }}"
+
+- name: Configure .bash_profile for users
+  ansible.builtin.copy:
+    src: bash_profile
+    dest: "{{ item.value.4 }}/.bash_profile"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+    mode: '0644'
+  loop: "{{ user_profiles_admin_users }}"
+
+- name: Configure .screenrc for users
+  ansible.builtin.copy:
+    src: screenrc
+    dest: "{{ item.value.4 }}/.screenrc"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+    mode: '0644'
+  loop: "{{ user_profiles_admin_users }}"
+
+- name: Configure mc for users
+  ansible.builtin.copy:
+    src: mc/
+    dest: "{{ item.value.4 }}/.config/mc/"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+    directory_mode: '0700'
+    mode: '0644'
+  loop: "{{ user_profiles_admin_users }}"
+
+- name: Configure mcedit syntax for users
+  ansible.builtin.copy:
+    src: mcedit_syntax/
+    dest: "{{ item.value.4 }}/.local/share/mc/syntax/"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+    directory_mode: '0700'
+    mode: '0644'
+  loop: "{{ user_profiles_admin_users }}"
+
+- name: Forward root mail to user 'z'
+  ansible.builtin.lineinfile:
+    path: /etc/aliases
+    regexp: '^root:'
+    line: 'root: z'
+  notify: "user_profiles : Rebuild aliases"
+  when: "'z' in (user_profiles_admin_users | map(attribute='key') | list)"
+
+- name: Apply configuration changes (if there are any) by flushing handlers
+  ansible.builtin.meta: flush_handlers

@@ -1,0 +1,2 @@
+termcapinfo xterm*|rxvt*|kterm*|Eterm* ti@:te@
+shell -$SHELL
