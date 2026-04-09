@@ -37,7 +37,19 @@ echo
 echo "Completed."
 echo
 echo "Now you can log in to the remote host with 'ssh -p 54018 z@$HOST_IP'"
-echo "or run other playbooks (using user 'ansible' and SSH port 54018)."
+echo
+echo "Next steps:"
+echo
+echo "1. Add hosts to manage to inventory/inventory.yml"
+echo
+echo "2. This playbook is supposed to run just once during the initial OS configuration:"
+echo "   ansible-playbook base_init.yml"
+echo
+echo "3. This playbook can run as often as needed to change the base server configuration:"
+echo "   ansible-playbook base.yml"
+echo 
+echo "Playbooks use configuration in ansible.cfg (user 'ansible' and SSH port 54018)."
 echo
 echo "If everything is good, to clear bash history before creating a server image run"
 echo '# cat /dev/null > ~/.bash_history && history -c && shutdown -hP now && exit'
+echo

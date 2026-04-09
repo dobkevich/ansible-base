@@ -1,4 +1,9 @@
 ---
+# This playbook is supposed to run only once during the initial
+# OS configuration. It involves full packages upgrade and sets basic
+# iptables filrewall rules, and may be unnecessary or unsafe to run more 
+# than once.
+
 - name: Initial base configuration
   hosts: all
   become: true
