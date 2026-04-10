@@ -3,7 +3,7 @@
   ansible.builtin.apt:
     name: exim4
     state: present
-  notify: "exim : Rebuild aliases"
+  notify: "exim4 : Rebuild aliases"
 
 - name: Configure /etc/mailname
   ansible.builtin.copy:
@@ -12,7 +12,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: "exim : Update exim config"
+  notify: "exim4 : Update exim4 config"
 
 - name: Configure /etc/exim4/update-exim4.conf.conf
   ansible.builtin.copy:
@@ -21,7 +21,12 @@
     owner: root
     group: root
     mode: '0644'
-  notify: "exim : Update exim config"
+  notify: "exim4 : Update exim4 config"
+
+- name: Add smtp.gmail.com example to /etc/exim4/passwd.client
+  ansible.builtin.lineinfile:
+    path: /etc/exim4/passwd.client
+    line: '#smtp.gmail.com:user@gmail.com:aaaa bbbb cccc dddd'
 
 - name: Ensure exim4 is enabled and running
   ansible.builtin.service:

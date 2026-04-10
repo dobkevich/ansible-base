@@ -9,7 +9,7 @@
     - systemd-resolved
     - kernel
     - timezone_chrony
-    - exim
+    - exim4
     - user_profiles
     - ssh
     - logrotate
