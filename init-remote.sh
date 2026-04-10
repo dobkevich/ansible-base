@@ -40,13 +40,17 @@ echo "Now you can log in to the remote host with 'ssh -p 54018 z@$HOST_IP'"
 echo
 echo "Next steps:"
 echo
-echo "1. Add hosts to manage to inventory/inventory.yml"
+echo "1. Add new host to inventory/inventory.yml, for example:"
+echo "   myhosts:"
+echo "     hosts:"
+echo "       ..."
+echo "       $HOST_IP:"
 echo
 echo "2. This playbook is supposed to run just once during the initial OS configuration:"
-echo "   ansible-playbook base_init.yml"
+echo "   ansible-playbook -l \"$HOST_IP\" base_init.yml"
 echo
 echo "3. This playbook can run as often as needed to change the base server configuration:"
-echo "   ansible-playbook base.yml"
+echo "   ansible-playbook -l \"$HOST_IP\" base.yml"
 echo 
 echo "Playbooks use configuration in ansible.cfg (user 'ansible' and SSH port 54018)."
 echo
