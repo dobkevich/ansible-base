@@ -1,33 +1,83 @@
 bash_prompt_cmd() {
-        local CY="\[\e[1;34m\]" # Each is 12 chars long
-        local BL="\[\e[1;34m\]"
-        local WH="\[\e[1;37m\]"
-        local BR="\[\e[0;33m\]"
-        local RE="\[\e[1;31m\]"
-        local PROMPT="${CY}$"
-        [ $UID -eq "0" ] && PROMPT="${RE}#"
+    local CY="\[\e[1;34m\]" # Each is 12 chars long
+    local BL="\[\e[1;34m\]"
+    local WH="\[\e[1;37m\]"
+    local BR="\[\e[0;33m\]"
+    local RE="\[\e[1;31m\]"
+    local PROMPT="${CY}$"
+    [ $UID -eq "0" ] && PROMPT="${RE}#"
 
-        # Add the first part of the prompt: username, host and time
-        local PROMPT_PWD=""
-        local PS1_T1="$BL[ $CY`whoami`@`hostname` $BL: $CY\t $BL:$CY "
-        local ps_len=$(( ${#PS1_T1} - 12 * 6 + 6 + 4 )) # Len adjust for colors, time and var
-        local PS1_T2=" $BL]\n${PROMPT} \[\e[0m\]"
-        local startpos=""
+    # Add the first part of the prompt: username, host and time
+    local PROMPT_PWD=""
+    local PS1_T1="$BL[ $CY`whoami`@`hostname` $BL: $CY\t $BL:$CY "
+    local ps_len=$(( ${#PS1_T1} - 12 * 6 + 6 + 4 )) # Len adjust for colors, time and var
+    local PS1_T2=" $BL]\n${PROMPT} \[\e[0m\]"
+    local startpos=""
 
-        PROMPT_PWD="${PWD/#$HOME/~}"
-        local overflow_prefix="..."
-        local pwdlen=${#PROMPT_PWD}
-        local maxpwdlen=$(( COLUMNS - ps_len ))
-        # Sometimes COLUMNS isn't initiliased, if it isn't, fall back on 80
-        [ $maxpwdlen -lt 0 ] && maxpwdlen=$(( 80 - ps_len )) 
+    PROMPT_PWD="${PWD/#$HOME/~}"
+    local overflow_prefix="..."
+    local pwdlen=${#PROMPT_PWD}
+    local maxpwdlen=$(( COLUMNS - ps_len ))
+    # Sometimes COLUMNS isn't initiliased, if it isn't, fall back on 80
+    [ $maxpwdlen -lt 0 ] && maxpwdlen=$(( 80 - ps_len )) 
 
-        if [ $pwdlen -gt $maxpwdlen ] ; then
-                startpos=$(( $pwdlen - maxpwdlen + ${#overflow_prefix} ))
-                PROMPT_PWD="${overflow_prefix}${PROMPT_PWD:$startpos:$maxpwdlen}"
-        fi
-        export PS1="${PS1_T1}${PROMPT_PWD}${PS1_T2}"
+    if [ $pwdlen -gt $maxpwdlen ] ; then
+        startpos=$(( $pwdlen - maxpwdlen + ${#overflow_prefix} ))
+        PROMPT_PWD="${overflow_prefix}${PROMPT_PWD:$startpos:$maxpwdlen}"
+    fi
+    export PS1="${PS1_T1}${PROMPT_PWD}${PS1_T2}"
 }
 PROMPT_COMMAND=bash_prompt_cmd
+
+
+# Function to load environment variables from a directory structure.
+# Each file name becomes the variable name, and its content becomes the value.
+# Usage: load_env_dir <directory_path> [use_sudo_flag]
+load_env_dir() {
+    local env_dir="$1"
+    local use_sudo="${2:-false}"
+
+    # Check if directory exists using sudo if requested
+    if [ "$use_sudo" = "true" ]; then
+        if ! sudo test -d "$env_dir"; then
+            echo "Error: Directory $env_dir does not exist or is inaccessible even with sudo." >&2
+            return 1
+        fi
+    else
+        if [ ! -d "$env_dir" ]; then
+            echo "Error: Directory $env_dir does not exist." >&2
+            return 1
+        fi
+    fi
+
+    # Prepare the find command. If sudo is required for listing, we prepend it.
+    local find_cmd="find \"$env_dir\" -type f -print0"
+    if [ "$use_sudo" = "true" ]; then
+        find_cmd="sudo find \"$env_dir\" -type f -print0"
+    fi
+
+    # We use eval to handle the potential sudo prefix in the command string.
+    # The while loop runs in the current shell context so 'export' works.
+    while IFS= read -r -d '' file; do
+        local var_name
+        var_name=$(basename "$file")
+
+        local var_value
+        if [ "$use_sudo" = "true" ]; then
+            # Read content using sudo and strip Windows carriage returns (\r)
+            # Trailing newlines (\n) are automatically stripped by $(...)
+            var_value=$(sudo cat "$file" | tr -d '\r')
+        else
+            var_value=$(cat "$file" | tr -d '\r')
+        fi
+
+        # Export the variable to the current shell
+        export "$var_name"="$var_value"
+
+        echo "Exported $var_name" # Optional, for debugging
+    done < <(eval "$find_cmd")
+}
+
 
 # General
 
@@ -45,14 +95,14 @@ alias r="sudo -i"
 # c "(2 + 2) * 2"
 alias c="set -f; bc_wrap"
 bc_wrap() {
-	echo "scale=16; $@" | bc | perl -ne 'printf "%.8f", $_;'
-	set +f
+    echo "scale=16; $@" | bc | perl -ne 'printf "%.8f", $_;'
+    set +f
 }
 
 # Search in bash history, usage:
 # hh <search string>
 hh() {
-        history | grep -i "$@"
+    history | grep -i "$@"
 }
 HISTIGNORE='hh *:ll:bg:fg:exit'
 
@@ -67,15 +117,11 @@ alias 777_recursive="~/scripts/777_recursive.pl"
 
 # Packages
 
-alias update="sudo aptitude update"
-alias upgrade="sudo aptitude safe-upgrade"
-alias install="sudo aptitude install"
-alias remove="sudo aptitude remove"
 alias uu="sudo apt clean && sudo apt update && sudo apt upgrade && sudo apt autoremove"
 
 # Services
 
-alias nt="sudo systemctl configtest nginx"
+alias nt="sudo nginx -t"
 alias nr="sudo systemctl reload nginx"
 alias mr="sudo systemctl restart mysql"
 alias hr="sudo systemctl reload haproxy"
@@ -121,6 +167,9 @@ alias ntail="tailf /var/log/nginx/virt_hosts.access.log"
 alias ncat="cat /var/log/nginx/virt_hosts.access.log"
 
 # Other
+
+alias drma="docker rm -f $(docker ps -q)"
+alias tf="load_env_dir /root/api_tokens true && terraform"
 
 # Set terminal window title and also define a command line alias, usage:
 # title <terminal window title>
