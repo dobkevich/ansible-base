@@ -136,19 +136,8 @@ alias sw="sudo swapoff -a && sudo swapon -a"
 # Monitoring
 
 alias free="sudo free -m"
+alias mem='echo; for pid in $(ps -e -o pid=); do f=/proc/$pid/smaps_rollup; [ -r "$f" ] || continue; cmd=$(tr -d "\0" </proc/$pid/cmdline | cut -c1-80); [ -z "$cmd" ] && cmd=$(ps -p $pid -o comm=); awk -v pid="$pid" -v cmd="$cmd" '"'"'BEGIN{pss=0;pc=0;pd=0} /^Pss:/ {pss=$2} /^Private_Clean:/ {pc=$2} /^Private_Dirty:/ {pd=$2} END { if (pss>0 && pid ~ /^[0-9]+$/) printf "%d\t%s\t%d\t%s\n", pss, pid, pc+pd, cmd }'"'"' "$f" 2>/dev/null; done | sort -nr | awk -F "\t" '"'"'BEGIN {print "--------------------------------------------------------------------------------"; printf "%-8s | %-12s | %-12s | %s\n", "PID", "PSS (MB)", "USS (MB)", "COMMAND"; print "--------------------------------------------------------------------------------"; tp=0; tu=0} $2 ~ /^[0-9]+$/ {tp+=$1; tu+=$3; printf "%-8s | %12.2f | %12.2f | %s\n", $2, $1/1024, $3/1024, $4} END {print "--------------------------------------------------------------------------------"; printf "%-8s | %12.2f | %12.2f | %s\n", "TOTAL", tp/1024, tu/1024, ""}'"'"''
 
-alias total_mem="free -m | awk '{print \$2}' | head -n 2 | tail -n 1"
-
-alias memstat="ps -eo rss | \
-awk -v total_mem=\`total_mem\` 'NR == 1 {next} BEGIN {used=0;total=free=total_mem*1024} {used+= \$1} END \
-{free-=used; printf(\"%.2f MB memory used, %.2f MB free, %.2f MB total \n\", \
-used/1024, free/1024, total/1024)}' ; \
-free -m | grep Swap | awk '{total= \$2; used= \$3; free= \$4; \
-printf(\"Swap: %d MB used, %d MB free, %d MB total \n\", used, free, total)}'"
-
-alias mem="ps -eo rss,pmem,pcpu,comm | sort -k 1 -n ; memstat"
-alias m="watch -n 1 'memstat; ps -eo rss,pmem,pcpu,comm | sort -k 1 -n'"
-alias memlong="ps -eo rss,pmem,pcpu,args | sort -k 1 -n ; memstat"
 alias cpu="sudo ps -eo pcpu,pid,user,comm | sort -k 1 -n"
 alias cpulong="sudo ps -eo pcpu,pid,user,command | sort -k 1 -n"
 
