@@ -49,6 +49,5 @@
       - s3cmd
       - spiped
       - apt-transport-https
-      - smem
     state: present
     update_cache: true
